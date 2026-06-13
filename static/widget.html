@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Chat Widget</title>
+<style>
+  * { box-sizing: border-box; margin: 0; font-family: "Segoe UI", Arial, sans-serif; }
+  body { display: flex; flex-direction: column; height: 100vh; background: #fff; }
+  #ctx { font-size: 11px; color: #5b6478; background: #f4f6fa; padding: 6px 12px; border-bottom: 1px solid #eceff4; }
+  #ctx b { color: #2563eb; }
+  #msgs { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .m { max-width: 92%; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+  .user { align-self: flex-end; background: #2563eb; color: #fff; border-bottom-right-radius: 3px; }
+  .bot  { align-self: flex-start; background: #f1f3f7; color: #2b3245; border-bottom-left-radius: 3px; }
+  .src { font-size: 11.5px; margin-top: 6px; }
+  .src a { color: #2563eb; cursor: pointer; text-decoration: underline; display: block; }
+  .thinking { color: #8a93a6; font-style: italic; }
+  form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #eceff4; }
+  input { flex: 1; padding: 9px 12px; border: 1px solid #d6dbe6; border-radius: 8px; font-size: 13px; }
+  button { padding: 9px 16px; border: none; border-radius: 8px; background: #2563eb; color: #fff; font-size: 13px; cursor: pointer; }
+  button:disabled { opacity: .5; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; }
+  .chip { font-size: 11px; background: #eef3fb; color: #2563eb; padding: 4px 9px; border-radius: 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="ctx">User: <b id="ctxUser">-</b> &middot; Context: <b id="ctxDoc">whole repository</b></div>
+<div id="msgs">
+  <div class="m bot">Hi! Ask me anything about the documents in this repository. I'll answer with citations — and I only see documents <i>you</i> have permission to read.</div>
+</div>
+<div class="chips">
+  <span class="chip">What is the RMAN backup schedule?</span>
+  <span class="chip">Which contracts expire in 2027?</span>
+  <span class="chip">How long do we retain financial records?</span>
+  <span class="chip">Summarize this document</span>
+</div>
+<form id="f">
+  <input id="q" placeholder="Ask about your documents..." autocomplete="off">
+  <button id="send">Send</button>
+</form>
+<script>
+let user = 'viraaj', ctxDocId = null;
+const msgs = document.getElementById('msgs');
+const q = document.getElementById('q');
+const send = document.getElementById('send');
+
+window.addEventListener('message', e => {
+  if (e.data.type === 'context') {
+    user = e.data.user;
+    ctxDocId = e.data.doc ? e.data.doc.id : null;
+    document.getElementById('ctxUser').textContent = user;
+    document.getElementById('ctxDoc').textContent = e.data.doc ? e.data.doc.name : 'whole repository';
+  }
+});
+parent.postMessage({ type: 'ready' }, '*');
+
+function add(cls, text) {
+  const d = document.createElement('div');
+  d.className = 'm ' + cls;
+  d.textContent = text;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+  return d;
+}
+
+document.querySelectorAll('.chip').forEach(c => c.onclick = () => { q.value = c.textContent; ask(); });
+document.getElementById('f').onsubmit = e => { e.preventDefault(); ask(); };
+
+async function ask() {
+  const question = q.value.trim();
+  if (!question) return;
+  add('user', question);
+  q.value = ''; send.disabled = true;
+  const wait = add('bot thinking', 'Searching documents and thinking...');
+  try {
+    const useCtx = /\b(this|current)\b.*\b(doc|document|contract|policy|sop|file)\b|\bsummarize this\b/i.test(question);
+    const res = await fetch('/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, user, context_object_id: useCtx ? ctxDocId : null })
+    });
+    const data = await res.json();
+    wait.remove();
+    const m = add('bot', data.answer);
+    if (data.sources && data.sources.length) {
+      const s = document.createElement('div');
+      s.className = 'src';
+      s.innerHTML = '<b>Sources:</b>';
+      data.sources.forEach(src => {
+        const a = document.createElement('a');
+        a.textContent = '📄 ' + src.object_name;
+        a.onclick = () => parent.postMessage({ type: 'openDoc', id: src.r_object_id }, '*');
+        s.appendChild(a);
+      });
+      m.appendChild(s);
+    }
+  } catch (err) {
+    wait.remove();
+    add('bot', 'Error: ' + err.message + ' — is the server running and is your API key set?');
+  }
+  send.disabled = false;
+}
+</script>
+</body>
+</html>

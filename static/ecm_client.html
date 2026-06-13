@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ECM Web Client (Mock) — ECM AI POC</title>
+<style>
+  * { box-sizing: border-box; margin: 0; font-family: "Segoe UI", Arial, sans-serif; }
+  body { height: 100vh; display: flex; flex-direction: column; background: #f0f2f5; }
+  header { background: #1a1f36; color: #fff; padding: 10px 18px; display: flex; align-items: center; gap: 14px; }
+  header .logo { font-weight: 700; font-size: 15px; }
+  header .badge { background: #e63946; font-size: 10px; padding: 2px 8px; border-radius: 10px; letter-spacing: .5px; }
+  header .spacer { flex: 1; }
+  header select { padding: 5px 8px; border-radius: 4px; border: none; font-size: 13px; }
+  header label { font-size: 12px; opacity: .8; }
+  main { flex: 1; display: grid; grid-template-columns: 250px 1fr 380px; gap: 10px; padding: 10px; min-height: 0; }
+  .panel { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); display: flex; flex-direction: column; min-height: 0; }
+  .panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: #5b6478; padding: 12px 14px 8px; border-bottom: 1px solid #eceff4; }
+  #doclist { overflow-y: auto; flex: 1; }
+  .doc { padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #f3f5f8; }
+  .doc:hover { background: #eef3fb; }
+  .doc.active { background: #dce9fb; border-left: 3px solid #2563eb; }
+  .doc .meta { font-size: 11px; color: #8a93a6; margin-top: 2px; }
+  #viewer { overflow-y: auto; flex: 1; padding: 18px 22px; white-space: pre-wrap; font-size: 13.5px; line-height: 1.55; color: #2b3245; }
+  #viewer.empty { display: flex; align-items: center; justify-content: center; color: #aab2c4; font-size: 14px; }
+  iframe { border: none; flex: 1; border-radius: 0 0 8px 8px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">ECM Web Client</span>
+  <span class="badge">MOCK / POC</span>
+  <span class="spacer"></span>
+  <label>Logged in as:</label>
+  <select id="userSel"></select>
+</header>
+<main>
+  <div class="panel">
+    <h3>Pilot Cabinet</h3>
+    <div id="doclist"></div>
+  </div>
+  <div class="panel">
+    <h3 id="viewerTitle">Document Viewer</h3>
+    <div id="viewer" class="empty">Select a document to view it here</div>
+  </div>
+  <div class="panel">
+    <h3>AI Assistant &mdash; powered by Claude</h3>
+    <iframe id="chat" src="/widget"></iframe>
+  </div>
+</main>
+<script>
+const userSel = document.getElementById('userSel');
+const doclist = document.getElementById('doclist');
+const viewer = document.getElementById('viewer');
+const viewerTitle = document.getElementById('viewerTitle');
+const chat = document.getElementById('chat');
+let currentDoc = null;
+
+function notifyWidget() {
+  chat.contentWindow.postMessage({
+    type: 'context',
+    user: userSel.value,
+    doc: currentDoc ? { id: currentDoc.r_object_id, name: currentDoc.object_name } : null
+  }, '*');
+}
+
+async function loadUsers() {
+  const users = await (await fetch('/api/users')).json();
+  userSel.innerHTML = users.map(u => `<option>${u}</option>`).join('');
+  userSel.onchange = () => { currentDoc = null; viewer.className='empty'; viewer.textContent='Select a document to view it here'; viewerTitle.textContent='Document Viewer'; loadDocs(); notifyWidget(); };
+}
+
+async function loadDocs() {
+  const docs = await (await fetch('/api/documents?user=' + userSel.value)).json();
+  doclist.innerHTML = docs.map(d =>
+    `<div class="doc" data-id="${d.r_object_id}" data-name="${d.object_name}">
+       ${d.object_name}<div class="meta">${d.folder} &middot; v${d.r_version_label.split(',')[0]} &middot; ${d.acl_name}</div>
+     </div>`).join('');
+  doclist.querySelectorAll('.doc').forEach(el => el.onclick = () => openDoc(el));
+}
+
+async function openDoc(el) {
+  doclist.querySelectorAll('.doc').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+  currentDoc = { r_object_id: el.dataset.id, object_name: el.dataset.name };
+  viewerTitle.textContent = el.dataset.name;
+  viewer.className = '';
+  viewer.textContent = await (await fetch(`/ecm-rest/repositories/MOCKDOCBASE/objects/${el.dataset.id}/content-media`)).text();
+  notifyWidget();
+}
+
+// Widget asks for context when it loads, or can request a doc be opened
+window.addEventListener('message', e => {
+  if (e.data.type === 'ready') notifyWidget();
+  if (e.data.type === 'openDoc') {
+    const el = doclist.querySelector(`.doc[data-id="${e.data.id}"]`);
+    if (el) openDoc(el);
+  }
+});
+
+loadUsers().then(loadDocs);
+</script>
+</body>
+</html>

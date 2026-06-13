@@ -1,0 +1,18 @@
+{
+  "repository": "MOCKDOCBASE",
+  "users": {
+    "viraaj": ["acl_it_public", "acl_finance", "acl_hr"],
+    "fatima_finance": ["acl_it_public", "acl_finance"],
+    "guest": ["acl_it_public"]
+  },
+  "documents": [
+    {"r_object_id": "0900000180001a01", "object_name": "SOP_Database_Backup.md", "r_object_type": "dm_document", "acl_name": "acl_it_public", "folder": "/Pilot Cabinet/SOPs", "r_version_label": "3.2,CURRENT"},
+    {"r_object_id": "0900000180001a02", "object_name": "SOP_Patch_Management.md", "r_object_type": "dm_document", "acl_name": "acl_it_public", "folder": "/Pilot Cabinet/SOPs", "r_version_label": "2.1,CURRENT"},
+    {"r_object_id": "0900000180001a03", "object_name": "SOP_ECM_ContentServer_Restart.md", "r_object_type": "dm_document", "acl_name": "acl_it_public", "folder": "/Pilot Cabinet/SOPs", "r_version_label": "1.4,CURRENT"},
+    {"r_object_id": "0900000180001b01", "object_name": "Contract_VendorX_NDA.md", "r_object_type": "dm_document", "acl_name": "acl_finance", "folder": "/Pilot Cabinet/Contracts", "r_version_label": "1.0,CURRENT"},
+    {"r_object_id": "0900000180001b02", "object_name": "Contract_CloudHost_MSA.md", "r_object_type": "dm_document", "acl_name": "acl_finance", "folder": "/Pilot Cabinet/Contracts", "r_version_label": "1.0,CURRENT"},
+    {"r_object_id": "0900000180001b03", "object_name": "Report_Q1_Compliance_Audit.md", "r_object_type": "dm_document", "acl_name": "acl_finance", "folder": "/Pilot Cabinet/Reports", "r_version_label": "1.0,CURRENT"},
+    {"r_object_id": "0900000180001c01", "object_name": "Policy_Records_Retention.md", "r_object_type": "dm_document", "acl_name": "acl_hr", "folder": "/Pilot Cabinet/Policies", "r_version_label": "5.0,CURRENT"},
+    {"r_object_id": "0900000180001c02", "object_name": "Policy_Travel_Expense.md", "r_object_type": "dm_document", "acl_name": "acl_hr", "folder": "/Pilot Cabinet/Policies", "r_version_label": "4.3,CURRENT"}
+  ]
+}
