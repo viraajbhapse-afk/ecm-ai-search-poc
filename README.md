@@ -45,10 +45,12 @@ Download Python 3.12 from https://www.python.org/downloads/windows/
 Verify in PowerShell: `python --version`
 
 ### Step 2 — Get the project
-Unzip to `C:\ecm-ai-poc`, then in PowerShell:
+Clone the repository, then enter the folder:
 ```powershell
-cd C:\ecm-ai-poc
+git clone https://github.com/viraajbhapse-afk/ecm-ai-search-poc.git
+cd ecm-ai-search-poc
 ```
+(No Git? Click the green **Code** button on GitHub -> **Download ZIP**, unzip, then `cd` into the folder.)
 
 ### Step 3 — Create environment & install packages
 ```powershell
